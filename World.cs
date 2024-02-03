@@ -2,7 +2,7 @@
 
 namespace Kobanan;
 
-public class World
+/*public class World
 {
     private List<Entity> _entities = new List<Entity>();
     private List<Filter> _filters = new List<Filter>();
@@ -110,4 +110,4 @@ public class World
             action.Invoke(entity, newComponent);
         }
     }
-}
+}*/

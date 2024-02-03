@@ -2,5 +2,5 @@
 
 public abstract class BaseSystem : ISystem
 {
-    public World World { get; private set; }
+    public IWorld World { get; private set; }
 }
