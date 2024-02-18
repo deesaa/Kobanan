@@ -1,9 +1,12 @@
-﻿namespace Kobanan;
+﻿using System;
 
-public class ReactDelAttribute : Attribute
+namespace Kobanan
 {
-    public ReactDelAttribute(Type type)
+    public class ReactDelAttribute : Attribute
     {
+        public ReactDelAttribute(Type type)
+        {
         
+        }
     }
 }

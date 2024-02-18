@@ -1,21 +1,21 @@
-﻿namespace Kobanan;
-
-public class Bootstrap
+﻿namespace Kobanan
 {
-    public IWorld _w;
-    public void Main()
+    public class Bootstrap
     {
-        _w = new World();
-        _w.AddSystem(new SetNameSystem());
-    }
+        public IWorld _w;
+        public void Main()
+        {
+            _w = new World();
+        }
 
-    public void Update()
-    {
-        _w.Update();
-    }
+        public void Update()
+        {
+            _w.Update();
+        }
 
-    public void Destroy()
-    {
-        _w.Destroy();
+        public void Destroy()
+        {
+            _w.Destroy();
+        }
     }
 }

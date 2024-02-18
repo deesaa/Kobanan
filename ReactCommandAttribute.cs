@@ -1,9 +1,12 @@
-﻿namespace Kobanan;
+﻿using System;
 
-public class ReactCommandAttribute : Attribute
+namespace Kobanan
 {
-    public ReactCommandAttribute(string command)
+    public class ReactCommandAttribute : Attribute
     {
+        public ReactCommandAttribute(string command)
+        {
         
+        }
     }
 }

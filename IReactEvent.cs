@@ -1,6 +1,7 @@
-﻿namespace Kobanan;
-
-public interface IReactEvent<T> where T : IEvent
+﻿namespace Kobanan
 {
-    public void OnEvent(T @event);
+    public interface IReactEvent<T> where T : IEvent
+    {
+        public void OnEvent(T @event);
+    }
 }

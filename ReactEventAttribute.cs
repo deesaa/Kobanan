@@ -1,9 +1,12 @@
-﻿namespace Kobanan;
+﻿using System;
 
-public class ReactEventAttribute : Attribute
+namespace Kobanan
 {
-    public ReactEventAttribute(string @event)
+    public class ReactEventAttribute : Attribute
     {
+        public ReactEventAttribute(string @event)
+        {
         
+        }
     }
 }

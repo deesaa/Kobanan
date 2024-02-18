@@ -1,6 +1,9 @@
-﻿namespace Kobanan;
+﻿using System;
 
-public class InjectAttribute : Attribute
+namespace Kobanan
 {
+    public class InjectAttribute : Attribute
+    {
     
+    }
 }

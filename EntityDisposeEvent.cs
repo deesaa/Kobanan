@@ -1,3 +1,4 @@
-﻿namespace Kobanan;
-
-public struct EntityDisposeEvent : IEvent{}
+﻿namespace Kobanan
+{
+    public struct EntityDisposeEvent : IEvent{}
+}

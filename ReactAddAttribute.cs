@@ -1,10 +1,13 @@
-﻿namespace Kobanan;
+﻿using System;
 
-public class ReactAddAttribute : Attribute
+namespace Kobanan
 {
-    public Type Type;
-    public ReactAddAttribute(Type type)
+    public class ReactAddAttribute : Attribute
     {
-        Type = type;
+        public Type Type;
+        public ReactAddAttribute(Type type)
+        {
+            Type = type;
+        }
     }
 }
