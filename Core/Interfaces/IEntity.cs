@@ -12,9 +12,9 @@ namespace Kobanan
         bool Has<T>() where T : IComponent<T>;
         void Del<T>() where T : IComponent<T>;
         void Del(IComponentBase component);
-        IDictionary<BigInteger, IComponentBase> Components { get; set; }
+        IDictionary<ComponentId, IComponentBase> Components { get; }
         Euid Euid { get; }
         void Destroy();
-        BigInteger GetComponentMask();
+        BigInteger GetComponentsEntityMask();
     }
 }

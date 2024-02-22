@@ -6,5 +6,6 @@ namespace Kobanan
     {
         FilterMask GetMask();
         FilterEnumerator GetEnumerator();
+        void AddEntity(IEntity entity);
     }
 }

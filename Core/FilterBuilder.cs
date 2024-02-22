@@ -23,19 +23,40 @@ namespace Kobanan
             _hash = _includeMask.GetHashCode() + _excludeMask.GetHashCode();
         }
 
-        public void AddInclude(BigInteger includeMask)
+        public void IncludeComponent(ComponentId includeComponent)
         {
-            _includeMask |= includeMask;
+            IncludeMask(includeComponent.MaskId);
+        }
+        
+        public void IncludeMask(BigInteger mask)
+        {
+            _includeMask |= mask;
         }
 
-        public void AddExclude(BigInteger excludeMask)
+        public void ExcludeComponent(ComponentId excludeComponent)
         {
-            _excludeMask |= excludeMask;
+            _excludeMask |= excludeComponent.MaskId;
         }
 
         public void End()
         {
             UpdateHash();
+        }
+
+        // _includeMask        00101    ~ 11010  
+        // _exclude            10000    ~ 01111
+        // entityComponentMask 10100      10100 
+        // &                   00100      11110    
+        // |                   10101 
+        
+        
+        //_exclude             00001
+        // entityComponentMask 10100
+        public bool Contains(BigInteger entityComponentMask)
+        {
+            var allInclude = (~(~_includeMask | entityComponentMask)).IsZero;
+            var anyExclude = !(_excludeMask & entityComponentMask).IsZero;
+            return allInclude && !anyExclude;
         }
     }
 
@@ -67,20 +88,20 @@ namespace Kobanan
         public IFilterBuilder Inc<T>()
         {
             var id = IdProvider.GetIdByType<T>();
-            _filterMask.AddInclude(id);
+            _filterMask.IncludeComponent(id);
             return this;
         }
         
         public IFilterBuilder Inc(BigInteger includeMask)
         {
-            _filterMask.AddInclude(includeMask);
+            _filterMask.IncludeMask(includeMask);
             return this;
         }
 
         public IFilterBuilder Exc<T>()
         {
             var id = IdProvider.GetIdByType<T>();
-            _filterMask.AddExclude(id);
+            _filterMask.ExcludeComponent(id);
             return this;
         }
 

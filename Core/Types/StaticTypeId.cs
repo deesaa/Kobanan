@@ -3,9 +3,22 @@ using System.Numerics;
 
 namespace Kobanan
 {
+
+    public struct ComponentId
+    {
+        public readonly int IncrementalId; // Used as index in arrays
+        public readonly BigInteger MaskId; // Bit mask - power of 2
+
+        public ComponentId(BigInteger maskId, int incrementalId)
+        {
+            MaskId = maskId;
+            IncrementalId = incrementalId;
+        }
+    }
+    
     public static class StaticTypeId<T>
     {
-        public static BigInteger Id { get; set; }
+        public static ComponentId Id { get; set; }
         static StaticTypeId()
         {
             StaticTypeIdCounter.Next(out var outId);
@@ -13,15 +26,5 @@ namespace Kobanan
         }
     }
 
-    public static class ReflectionStaticTypeId
-    {
-        public static BigInteger Get(Type type)
-        {
-            var generic = typeof(StaticTypeId<>);
-            var instance = generic.MakeGenericType(type);
-            var idProperty = instance.GetProperty("Id");
-            var id = (BigInteger)idProperty.GetValue(null);
-            return id;
-        }
-    }
+   
 }

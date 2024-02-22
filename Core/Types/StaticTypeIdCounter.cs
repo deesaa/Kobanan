@@ -4,17 +4,20 @@ namespace Kobanan
 {
     public static class StaticTypeIdCounter
     {
-        private static BigInteger LastId;
+        private static BigInteger LastMaskId;
+        private static int LastIncrementalId;
         
         static StaticTypeIdCounter()
         {
-            LastId = 1;
+            LastMaskId = 1;
+            LastIncrementalId = 0;
         }
 
-        public static void Next(out BigInteger id)
+        public static void Next(out ComponentId componentId)
         {
-            id = LastId;
-            LastId <<= 1;
+            componentId = new ComponentId(LastMaskId, LastIncrementalId);
+            LastMaskId <<= 1;
+            LastIncrementalId++;
         }
     }
 }

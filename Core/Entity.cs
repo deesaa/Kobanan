@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -7,6 +8,99 @@ using Unity.VisualScripting;
 
 namespace Kobanan
 {
+    public class ComponentsDictionary : IDictionary<ComponentId, IComponentBase>
+    {
+        private const int SparseArraySizeStep = 32;
+        private IComponentBase[] _sparseComponents = new IComponentBase[SparseArraySizeStep];
+        private List<IComponentBase> _denseComponents = new(8);
+        public IEnumerator<KeyValuePair<ComponentId, IComponentBase>> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public void Add(KeyValuePair<ComponentId, IComponentBase> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Contains(KeyValuePair<ComponentId, IComponentBase> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CopyTo(KeyValuePair<ComponentId, IComponentBase>[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(KeyValuePair<ComponentId, IComponentBase> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int Count => _denseComponents.Count;
+        public bool IsReadOnly => false;
+        public void Add(ComponentId key, IComponentBase value)
+        {
+            if (value == null)
+            {
+                Remove(key);
+                return;
+            }
+            
+            _denseComponents.Add(value);
+            if (key.IncrementalId >= _sparseComponents.Length)
+            {
+                var k = key.IncrementalId / SparseArraySizeStep;
+                var newSize = SparseArraySizeStep * (k + 1);
+                Array.Resize(ref _sparseComponents, newSize);
+            }
+            _sparseComponents[key.IncrementalId] = value;
+        }
+
+        public bool ContainsKey(ComponentId key)
+        {
+            return _sparseComponents.Length > key.IncrementalId && _sparseComponents[key.IncrementalId] != null;
+        }
+
+        public bool Remove(ComponentId key)
+        {
+            if (_sparseComponents.Length <= key.IncrementalId) return false;
+            _denseComponents.RemoveAll(component =>
+            {
+                var type = IdProvider.GetTypeById(key);
+                return component.GetType() == type;
+            });
+            _sparseComponents[key.IncrementalId] = null;
+            return true;
+        }
+
+        public bool TryGetValue(ComponentId key, out IComponentBase value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IComponentBase this[ComponentId key]
+        {
+            get => _sparseComponents[key.IncrementalId];
+            set => Add(key, value);
+        }
+
+        public ICollection<ComponentId> Keys { get; }
+        public ICollection<IComponentBase> Values => _denseComponents;
+    }
+
+
     public class Entity : IEntity
     {
         public IWorld World { get; }
@@ -15,8 +109,9 @@ namespace Kobanan
             
         }
 
+        public IDictionary<ComponentId, IComponentBase> Components { get; }
+
         private BigInteger _componentMask;
-        public IDictionary<BigInteger, IComponentBase> Components { get; set; }
         public Euid Euid { get; }
         
         
@@ -29,21 +124,21 @@ namespace Kobanan
             World.OnEntityDestroyed(this);
         }
 
-        public BigInteger GetComponentMask() => _componentMask;
+        public BigInteger GetComponentsEntityMask() => _componentMask;
 
         public Entity(IWorld world, string name)
         {
             World = world;
             Euid = IdProvider.CreateEuid(world, name);
-            Components = new Dictionary<BigInteger, IComponentBase>();
+            Components = new ComponentsDictionary();
             world.OnEntityCreated(this);
         }
 
         public T Get<T>() where T : IComponent<T>
         {
             var id = IdProvider.GetIdByType<T>();
-            if (!Components.TryGetValue(id, out var component))
-                throw new Exception($"Component {typeof(T)} does not exist on entity {Euid}");
+            var component = Components[id];
+            if (component == null) throw new Exception($"Component {typeof(T)} does not exist on entity {Euid}");
             return (T)component;
         }
         
@@ -59,7 +154,7 @@ namespace Kobanan
         
             component.Entity = this;
             Components.Add(id, component);
-            _componentMask |= id;
+            _componentMask |= id.MaskId;
             World.OnComponentCreated(this, component, id);
             return component;
         }
@@ -85,7 +180,7 @@ namespace Kobanan
         {
             var id = IdProvider.GetIdByType<T>();
             if (!Components.Remove(id, out var component)) return;
-            var removeIdMask = ~id;
+            var removeIdMask = ~id.MaskId;
             _componentMask &= removeIdMask;
             World.OnComponentDeleted(this, component, id);
         }

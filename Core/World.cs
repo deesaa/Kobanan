@@ -116,7 +116,7 @@ namespace Kobanan
                         methodInvocationData.Arguments[i].Type = args[i].ParameterType;
                         methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Component;
                         methodInvocationData.ValidArgsCount++;
-                        methodInvocationData.FilterIncludeMask += ReflectionStaticTypeId.Get(args[i].ParameterType);
+                        methodInvocationData.FilterIncludeMask += IdProvider.GetIdByType(args[i].ParameterType).MaskId;
                         continue;
                     }
                     if (typeof(IService).IsAssignableFrom(args[i].ParameterType))
@@ -256,10 +256,12 @@ namespace Kobanan
 
         public void OnFilterCreated(IFilter filter)
         {
-            FilterMask mask = filter.GetMask();
+            FilterMask filterMask = filter.GetMask();
             foreach (var entity in _entities)
             {
-                BigInteger entityComponentMask = entity.Value.GetComponentMask();
+                BigInteger entityComponentMask = entity.Value.GetComponentsEntityMask();
+                if (filterMask.Contains(entityComponentMask))
+                    filter.AddEntity(entity.Value);
             }
         }
     }
