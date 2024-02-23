@@ -39,6 +39,7 @@ namespace Kobanan
         public World(string name = "Default")
         {
             Name = name;
+            _filtersPool = new FiltersPool(this);
         }
 
         public IFilterBuilder Filter<T>()
@@ -175,9 +176,10 @@ namespace Kobanan
             public object[] args;
         }
 
+        private IFiltersPool _filtersPool;
         private IFilter Filter(BigInteger includeMask)
         {
-            var filterBuilder = new FilterBuilder(this);
+            var filterBuilder = new FilterBuilder(this, _filtersPool);
             filterBuilder.Inc(includeMask);
             var filter = filterBuilder.End();
             return filter;
@@ -198,6 +200,8 @@ namespace Kobanan
             public int ValidArgsCount;
 
             public bool AnyArgsMatch => ValidArgsCount != 0;
+            
+            // If only some of the args in a method are valid, throw exception
             public bool IsException => ValidArgsCount != 0 && ValidArgsCount != ArgsCount;
             public struct Argument
             {
@@ -231,17 +235,17 @@ namespace Kobanan
 
         public void Destroy()
         {
-
+            
         }
 
-        public void OnComponentCreated(IEntity entity, IComponentBase component, BigInteger id)
+        public void OnComponentAdded(IEntity entity, IComponentBase component, ComponentId componentId)
         {
-
+            _filtersPool.OnComponentAdded(entity, component, componentId);
         }
 
-        public void OnComponentDeleted(IEntity entity, IComponentBase component, BigInteger id)
+        public void OnComponentDeleted(IEntity entity, IComponentBase component, ComponentId componentId)
         {
-
+            _filtersPool.OnComponentDeleted(entity, component, componentId);
         }
 
         public void OnEntityDestroyed(IEntity entity)

@@ -42,16 +42,7 @@ namespace Kobanan
         {
             UpdateHash();
         }
-
-        // _includeMask        00101    ~ 11010  
-        // _exclude            10000    ~ 01111
-        // entityComponentMask 10100      10100 
-        // &                   00100      11110    
-        // |                   10101 
         
-        
-        //_exclude             00001
-        // entityComponentMask 10100
         public bool Contains(BigInteger entityComponentMask)
         {
             var allInclude = (~(~_includeMask | entityComponentMask)).IsZero;
@@ -63,26 +54,19 @@ namespace Kobanan
     public struct FilterBuilder : IFilterBuilder
     {
         private IWorld _world;
-
         private FilterMask _filterMask;
-
-        private Dictionary<FilterMask, IFilter> _filters;
-
-        public FilterBuilder(IWorld world)
+        private IFiltersPool _filtersPool;
+        
+        public FilterBuilder(IWorld world, IFiltersPool filtersPool)
         {
-            _filters = new Dictionary<FilterMask, IFilter>(new FilterMask());
+            _filtersPool = filtersPool;
             _world = world;
             _filterMask = default;
         }
         public IFilter End()
         {
             _filterMask.End();
-            if (!_filters.TryGetValue(_filterMask, out var filter))
-            {
-                _filters.Add(_filterMask, filter = new Filter(_filterMask));
-                _world.OnFilterCreated(filter);
-            }
-            return filter;
+            return _filtersPool.GetFilter(_filterMask);
         }
 
         public IFilterBuilder Inc<T>()
@@ -92,9 +76,9 @@ namespace Kobanan
             return this;
         }
         
-        public IFilterBuilder Inc(BigInteger includeMask)
+        public IFilterBuilder Inc(BigInteger includeComponentMask)
         {
-            _filterMask.IncludeMask(includeMask);
+            _filterMask.IncludeMask(includeComponentMask);
             return this;
         }
 
@@ -114,7 +98,5 @@ namespace Kobanan
         {
             return this;
         }
-
-        
     }
 }

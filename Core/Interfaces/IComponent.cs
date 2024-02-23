@@ -20,7 +20,11 @@
 
     public interface IComponent<T> : IComponentBase where T : IComponent<T>
     {
-        //  TypeId TypeId => new(IdProvider.GetTypeId<T>());
+        ComponentId IComponentBase.GetComponentId()
+        {
+            return IdProvider.GetIdByType<T>();
+        }
+        
         void IComponentBase.Destroy()
         {
             Entity.Del<T>();

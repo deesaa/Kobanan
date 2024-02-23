@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -16,5 +17,8 @@ namespace Kobanan
         Euid Euid { get; }
         void Destroy();
         BigInteger GetComponentsEntityMask();
+        IEnumerable<IFilter> Filters();
+        void OnAddInFilter(IFilter filter);
+        void OnRemoveFromFilter(IFilter filter);
     }
 }

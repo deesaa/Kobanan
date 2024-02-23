@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using UnityEngine;
@@ -46,19 +47,23 @@ namespace Kobanan
 
     public class Filter : IFilter
     {
+        private const int DenseArrayStepSize = 32;
+        
         private FilterMask _filterMask;
 
         private Dictionary<Euid, int> _entitiesListMap = new();
         //private List<IEntity> _sparseEntities = new();
-        private IEntity[] _denseEntities;
+        private IEntity[] _denseEntities = new IEntity[DenseArrayStepSize];
         
         
         private int[] _recycleDenseIndexes = new int[8];
         private int _recycleDenseIndexesSize = 0;
         
-        public Filter(FilterMask filterMask)
+        public Filter(FilterMask filterMask, string filterName)
         {
             _filterMask = filterMask;
+            FilterName = filterName;
+            FilterId = new Fuid(filterMask.GetHashCode());
         }
 
         public FilterEnumerator GetEnumerator() => new FilterEnumerator(_denseEntities); // Need custom
@@ -69,20 +74,32 @@ namespace Kobanan
                 entityInFilterId = _recycleDenseIndexes[--_recycleDenseIndexesSize];
             else
                 entityInFilterId = _denseEntities.Length + 1;
-            
-            
             var euid = entity.Euid;
+            
+            if (entityInFilterId >= _denseEntities.Length)
+            {
+                var k = entityInFilterId / DenseArrayStepSize;
+                var newSize = DenseArrayStepSize * (k + 1);
+                Array.Resize(ref _denseEntities, newSize);
+            }
+            
             _denseEntities[entityInFilterId] = entity;
             _entitiesListMap[euid] = entityInFilterId;
+            entity.OnAddInFilter(this);
         }
         
         public void RemoveEntity(IEntity entity)
         {
             var euid = entity.Euid;
             var entityInFilterId = _entitiesListMap[euid];
-
+            _denseEntities[entityInFilterId] = null;
+            _recycleDenseIndexes[_recycleDenseIndexesSize++] = entityInFilterId;
+            _entitiesListMap.Remove(euid);
+            entity.OnRemoveFromFilter(this);
         }
 
+        public string FilterName { get; }
+        public Fuid FilterId { get; }
         public FilterMask GetMask() => _filterMask;
     }
 }

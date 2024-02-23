@@ -17,7 +17,7 @@ namespace Kobanan
         void RemoveSystem<T>() where T : ISystem;
         void Update();
         void Destroy();
-        void OnComponentCreated(IEntity entity, IComponentBase component, ComponentId componentId);
+        void OnComponentAdded(IEntity entity, IComponentBase component, ComponentId componentId);
         void OnComponentDeleted(IEntity entity, IComponentBase component, ComponentId componentId);
         void OnEntityDestroyed(IEntity entity);
         T GetService<T>() where T : IService;

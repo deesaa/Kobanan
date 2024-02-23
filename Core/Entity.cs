@@ -73,27 +73,35 @@ namespace Kobanan
             return _sparseComponents.Length > key.IncrementalId && _sparseComponents[key.IncrementalId] != null;
         }
 
-        public bool Remove(ComponentId key)
+        public bool Remove(ComponentId componentId)
         {
-            if (_sparseComponents.Length <= key.IncrementalId) return false;
+            if (_sparseComponents.Length <= componentId.IncrementalId) return false;
             _denseComponents.RemoveAll(component =>
             {
-                var type = IdProvider.GetTypeById(key);
+                var type = IdProvider.GetTypeById(componentId);
                 return component.GetType() == type;
             });
-            _sparseComponents[key.IncrementalId] = null;
+            _sparseComponents[componentId.IncrementalId] = null;
             return true;
         }
 
-        public bool TryGetValue(ComponentId key, out IComponentBase value)
+        public bool TryGetValue(ComponentId componentId, out IComponentBase value)
         {
-            throw new NotImplementedException();
+            if (_sparseComponents.Length <= componentId.IncrementalId ||
+                _sparseComponents[componentId.IncrementalId] == null)
+            {
+                value = null;
+                return false;
+            }
+
+            value = _sparseComponents[componentId.IncrementalId];
+            return true;
         }
 
-        public IComponentBase this[ComponentId key]
+        public IComponentBase this[ComponentId componentId]
         {
-            get => _sparseComponents[key.IncrementalId];
-            set => Add(key, value);
+            get => _sparseComponents[componentId.IncrementalId];
+            set => Add(componentId, value);
         }
 
         public ICollection<ComponentId> Keys { get; }
@@ -125,6 +133,7 @@ namespace Kobanan
         }
 
         public BigInteger GetComponentsEntityMask() => _componentMask;
+        public IEnumerable<IFilter> Filters() => _filters.Values;
 
         public Entity(IWorld world, string name)
         {
@@ -155,7 +164,7 @@ namespace Kobanan
             component.Entity = this;
             Components.Add(id, component);
             _componentMask |= id.MaskId;
-            World.OnComponentCreated(this, component, id);
+            World.OnComponentAdded(this, component, id);
             return component;
         }
 
@@ -189,6 +198,18 @@ namespace Kobanan
         {
             var id = IdProvider.GetIdByType<T>();
             return Components.ContainsKey(id);
+        }
+
+
+        private Dictionary<int, IFilter> _filters = new();
+        public void OnAddInFilter(IFilter filter)
+        {
+            _filters.Add(filter.FilterId.Id, filter);
+        }
+
+        public void OnRemoveFromFilter(IFilter filter)
+        {
+            _filters.Remove(filter.FilterId.Id);
         }
     }
 }
