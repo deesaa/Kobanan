@@ -15,11 +15,11 @@ namespace Kobanan
     {
         public void OnDestroyed(IEntity entity);
     }
-    public interface IComponentAddedListener<T> where T : IComponent<T>
+    public interface IComponentAddedListener<T> where T : IComponentBase
     {
         public void OnAdded(T component);
     }
-    public interface IComponentDeletedListener<T> where T : IComponent<T>
+    public interface IComponentDeletedListener<T> where T : IComponentBase
     {
         public void OnDeleted(T component);
     }

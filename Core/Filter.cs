@@ -29,7 +29,7 @@ namespace Kobanan
         public bool MoveNext()
         {
             _currentIndex++;
-            if (_currentIndex <= _entities.Length) return false;
+            if (_currentIndex >= _entities.Length) return false;
             Current = _entities[_currentIndex];
             return true;
         }

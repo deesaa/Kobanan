@@ -125,10 +125,10 @@ namespace Kobanan
         
         public void Destroy()
         {
-            foreach (var component in Components)
-            {
-                component.Value.Destroy();
-            }
+            // foreach (var component in Components)
+            // {
+            //     component.Value.Destroy();
+            // }
             World.OnEntityDestroyed(this);
         }
 
@@ -143,7 +143,7 @@ namespace Kobanan
             world.OnEntityCreated(this);
         }
 
-        public T Get<T>() where T : IComponent<T>
+        public T Get<T>() where T : IComponentBase
         {
             var id = IdProvider.GetIdByType<T>();
             var component = Components[id];
@@ -153,7 +153,7 @@ namespace Kobanan
         
 
     
-        public T Add<T>(T component) where T : IComponent<T>
+        private T AddInternal<T>(T component) where T : IComponentBase
         {
             var id = IdProvider.GetIdByType<T>();
             if (Components.TryGetValue(id, out var outComponent))
@@ -168,24 +168,39 @@ namespace Kobanan
             return component;
         }
 
-        public void AddBase(IComponentBase component)
+        public T Add<T>(T component) where T : IComponentBase
         {
             var componentInterfaces = component
                 .GetType()
-                .GetInterfaces()
-                .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IComponent<>));
+                .GetInterfaces();
+                // .Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IComponent<>));
       
             foreach (var componentInterface in componentInterfaces)
             {
-                var interfaceGenericArg = componentInterface.GenericTypeArguments[0];
-                Type[] typeArgs = { interfaceGenericArg };
-                var method = typeof(Entity).GetMethod("Add");
+                Type componentType = null;
+                if (componentInterface == typeof(IComponentBase))
+                {
+                    componentType = component.GetType();
+                }
+                else if (typeof(IComponentBase).IsAssignableFrom(componentInterfaces))
+                {
+                    componentType = componentInterface;
+                }
+                else
+                {
+                    continue;
+                }
+                
+                Type[] typeArgs = { componentType };
+                var method = typeof(Entity).GetMethod("AddInternal", BindingFlags.NonPublic | BindingFlags.Instance);
                 var generic = method.MakeGenericMethod(typeArgs);
-                generic.InvokeOptimized(this, component);
+                generic.Invoke(this, new object[] { component });
             }
+
+            return component;
         }
 
-        public void Del<T>() where T : IComponent<T>
+        public void Del<T>() where T : IComponentBase
         {
             var id = IdProvider.GetIdByType<T>();
             if (!Components.Remove(id, out var component)) return;
@@ -194,7 +209,7 @@ namespace Kobanan
             World.OnComponentDeleted(this, component, id);
         }
 
-        public bool Has<T>() where T : IComponent<T>
+        public bool Has<T>() where T : IComponentBase
         {
             var id = IdProvider.GetIdByType<T>();
             return Components.ContainsKey(id);
