@@ -182,7 +182,7 @@ namespace Kobanan
                 {
                     componentType = component.GetType();
                 }
-                else if (typeof(IComponentBase).IsAssignableFrom(componentInterfaces))
+                else if (typeof(IComponentBase).IsAssignableFrom(componentInterface))
                 {
                     componentType = componentInterface;
                 }
@@ -219,7 +219,7 @@ namespace Kobanan
         private Dictionary<int, IFilter> _filters = new();
         public void OnAddInFilter(IFilter filter)
         {
-            _filters.Add(filter.FilterId.Id, filter);
+            _filters.TryAdd(filter.FilterId.Id, filter);
         }
 
         public void OnRemoveFromFilter(IFilter filter)

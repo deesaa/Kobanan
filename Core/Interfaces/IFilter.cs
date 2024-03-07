@@ -32,7 +32,7 @@ namespace Kobanan
     
     public class FiltersPool : IFiltersPool
     {
-        private Dictionary<FilterMask, IFilter> _filters = new();
+        private Dictionary<FilterMask, IFilter> _filters = new(new FilterMask());
         private IWorld _world;
 
         public FiltersPool(IWorld world)

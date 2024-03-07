@@ -11,10 +11,12 @@ namespace Kobanan
     {
         private IEntity[] _entities;
         private int _currentIndex;
+        private int _size;
         
-        public FilterEnumerator(IEntity[] entities)
+        public FilterEnumerator(IEntity[] entities, int size)
         {
             _entities = entities;
+            _size = size;
             Current = null;
             _currentIndex = -1;
         }
@@ -28,10 +30,12 @@ namespace Kobanan
 
         public bool MoveNext()
         {
+            
             _currentIndex++;
-            if (_currentIndex >= _entities.Length) return false;
+            if (_currentIndex >= _size || _currentIndex >= _entities.Length) return false;
             Current = _entities[_currentIndex];
             return true;
+            
         }
 
         public void Reset()
@@ -54,10 +58,11 @@ namespace Kobanan
         private Dictionary<Euid, int> _entitiesListMap = new();
         //private List<IEntity> _sparseEntities = new();
         private IEntity[] _denseEntities = new IEntity[DenseArrayStepSize];
+        private int _entitiesCount = 0;
         
         
-        private int[] _recycleDenseIndexes = new int[8];
-        private int _recycleDenseIndexesSize = 0;
+       // private int[] _recycleDenseIndexes = new int[8];
+        //private int _recycleDenseIndexesSize = 0;
         
         public Filter(FilterMask filterMask, string filterName)
         {
@@ -66,14 +71,10 @@ namespace Kobanan
             FilterId = new Fuid(filterMask.GetHashCode());
         }
 
-        public FilterEnumerator GetEnumerator() => new FilterEnumerator(_denseEntities); // Need custom
+        public FilterEnumerator GetEnumerator() => new FilterEnumerator(_denseEntities, _entitiesCount); // Need custom
         public void AddEntity(IEntity entity)
         {
-            var entityInFilterId = -1;
-            if (_recycleDenseIndexesSize > 0)
-                entityInFilterId = _recycleDenseIndexes[--_recycleDenseIndexesSize];
-            else
-                entityInFilterId = _denseEntities.Length + 1;
+            var entityInFilterId = _entitiesCount;
             var euid = entity.Euid;
             
             if (entityInFilterId >= _denseEntities.Length)
@@ -85,6 +86,7 @@ namespace Kobanan
             
             _denseEntities[entityInFilterId] = entity;
             _entitiesListMap[euid] = entityInFilterId;
+            _entitiesCount++;
             entity.OnAddInFilter(this);
         }
         
@@ -93,7 +95,6 @@ namespace Kobanan
             var euid = entity.Euid;
             var entityInFilterId = _entitiesListMap[euid];
             _denseEntities[entityInFilterId] = null;
-            _recycleDenseIndexes[_recycleDenseIndexesSize++] = entityInFilterId;
             _entitiesListMap.Remove(euid);
             entity.OnRemoveFromFilter(this);
         }

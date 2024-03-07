@@ -6,7 +6,7 @@ namespace Kobanan
     {
         public static IComponentBase Get(this IEntity entity, Type type)
         {
-            var generic = entity.GetType().GetMethod("Add");
+            var generic = entity.GetType().GetMethod("Get");
             var instance = generic.MakeGenericMethod(type);
             return (IComponentBase)instance.Invoke(entity, null);
         }

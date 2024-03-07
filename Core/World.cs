@@ -260,6 +260,8 @@ namespace Kobanan
 
         public void OnFilterCreated(IFilter filter)
         {
+            //Calls 2 times on same ID - FIX?
+            
             FilterMask filterMask = filter.GetMask();
             foreach (var entity in _entities)
             {
