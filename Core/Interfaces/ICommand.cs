@@ -1,4 +1,7 @@
 ﻿namespace Kobanan
 {
-    public interface ICommand{}
-}
+    public abstract class Command : IComponentBase
+    {
+        public IEntity Entity { get; set; }
+    }
+}       

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using Unity.VisualScripting.FullSerializer.Internal;
+using System.Runtime.CompilerServices;
 
 namespace Kobanan
 {
@@ -77,9 +77,10 @@ namespace Kobanan
 
 
         private Dictionary<Type, IService> _services = new();
-        public void AddSystem<T>(T system) where T : ISystem
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void TryInjectAsService<T>(T system) where T : ISystem
         {
-            system.World = this;
             if (system is IService service)
             {
                 var serviceInterfaces = system
@@ -94,39 +95,61 @@ namespace Kobanan
                     AddService(serviceInterface, service);
                 }
             }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private MethodInvocationData CollectInvocationData(MethodInfo method)
+        {
+            var args = method.GetParameters();
+
+            var methodInvocationData = new MethodInvocationData()
+            {
+                Arguments = new MethodInvocationData.Argument[args.Length],
+                ArgsCount = args.Length
+            };
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (typeof(IComponentBase).IsAssignableFrom(args[i].ParameterType))
+                {
+                    methodInvocationData.Arguments[i].Type = args[i].ParameterType;
+                    methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Component;
+                    methodInvocationData.ValidArgsCount++;
+                    methodInvocationData.FilterIncludeMask += IdProvider.GetIdByType(args[i].ParameterType).MaskId;
+                    continue;
+                }
+                if (typeof(IService).IsAssignableFrom(args[i].ParameterType))
+                {
+                    methodInvocationData.Arguments[i].Type = args[i].ParameterType;
+                    methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Service;
+                    methodInvocationData.ValidArgsCount++;
+                    continue;
+                }
+                if (typeof(Command).IsAssignableFrom(args[i].ParameterType))
+                {
+                    methodInvocationData.Arguments[i].Type = args[i].ParameterType;
+                    methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Command;
+                    methodInvocationData.ValidArgsCount++;
+                    methodInvocationData.IsSyncCommandMethod = true;
+                }
+            }
+
+            return methodInvocationData;
+        }
+        
+        public void AddSystem<T>(T system) where T : ISystem
+        {
+            system.World = this;
+            
+            TryInjectAsService(system);
+            
             var reflectedSystemMethods = system
                 .GetType()
                 .GetMethods();
             
-            
             foreach (var method in reflectedSystemMethods)
             {
-                var args = method.GetParameters();
-
-                var methodInvocationData = new MethodInvocationData()
-                {
-                    Arguments = new MethodInvocationData.Argument[args.Length],
-                    ArgsCount = args.Length
-                };
-
-                for (int i = 0; i < args.Length; i++)
-                {
-                    if (typeof(IComponentBase).IsAssignableFrom(args[i].ParameterType))
-                    {
-                        methodInvocationData.Arguments[i].Type = args[i].ParameterType;
-                        methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Component;
-                        methodInvocationData.ValidArgsCount++;
-                        methodInvocationData.FilterIncludeMask += IdProvider.GetIdByType(args[i].ParameterType).MaskId;
-                        continue;
-                    }
-                    if (typeof(IService).IsAssignableFrom(args[i].ParameterType))
-                    {
-                        methodInvocationData.Arguments[i].Type = args[i].ParameterType;
-                        methodInvocationData.Arguments[i].InjectMode = MethodInvocationData.InjectMode.Service;
-                        methodInvocationData.ValidArgsCount++;
-                    }
-                }
+                var methodInvocationData = CollectInvocationData(method);
                 
                 if(!methodInvocationData.AnyArgsMatch) continue;
                 if (methodInvocationData.IsException) 
@@ -191,13 +214,16 @@ namespace Kobanan
             {
                 None,
                 Component,
-                Service
+                Service,
+                Command
             }
 
             public BigInteger FilterIncludeMask;
             public Argument[] Arguments;
             public int ArgsCount;
             public int ValidArgsCount;
+
+            public bool IsSyncCommandMethod;
 
             public bool AnyArgsMatch => ValidArgsCount != 0;
             
@@ -222,6 +248,7 @@ namespace Kobanan
 
 
         private Dictionary<Type, List<Action>> _updates = new();
+        private Dictionary<Type, List<Action>> _syncCommandUpdates = new(); //Have any command type args
         public void Update()
         {
             foreach (var update in _updates)
@@ -260,8 +287,6 @@ namespace Kobanan
 
         public void OnFilterCreated(IFilter filter)
         {
-            //Calls 2 times on same ID - FIX?
-            
             FilterMask filterMask = filter.GetMask();
             foreach (var entity in _entities)
             {
@@ -272,113 +297,3 @@ namespace Kobanan
         }
     }
 }
-
-/*public class World
-{
-    private List<Entity> _entities = new List<Entity>();
-    private List<Filter> _filters = new List<Filter>();
-    private Queue<Type> _toInject = new Queue<Type>();
-    private Dictionary<Type, object> _instances = new Dictionary<Type, object>();
-    private Dictionary<Type, List<Action<Entity, IComponent>>> _reactComponentAddMethods = new Dictionary<Type, List<Action<Entity, IComponent>>> ();
-    public int Count<T>() where T : IComponent
-    {
-        return 0;
-    }
-
-    public Entity NewEntity()
-    {
-        var entity = new Entity(this);
-        _entities.Add(entity);
-        return entity;
-    }
-
-    public void Update()
-    {
-        foreach (Filter filter in _filters)
-        {
-            filter.Invoke();
-        }
-    }
-
-    public void Fire(string name, object @event)
-    {
-
-    }
-
-    public void Inject<T>() where T : ISystem
-    {
-        _toInject.Enqueue(typeof(T));
-    }
-
-    public void ProcessInjects()
-    {
-        foreach (var type in _toInject)
-        {
-            var constructor = type.GetConstructor(Type.EmptyTypes);
-            var instance = constructor.Invoke(Array.Empty<object>());
-            _instances.Add(type, instance);
-        }
-
-        foreach (var pair in _instances)
-        {
-            InjectFields(pair);
-            InjectMethods(pair);
-        }
-    }
-
-    protected void InjectMethods(KeyValuePair<Type, object> keyValuePair)
-    {
-        var methods = keyValuePair.Value.GetType().GetMethods();
-
-        foreach (var methodInfo in methods)
-        {
-            TryAddEntityFilter(methodInfo, keyValuePair.Value);
-        }
-
-        var componentAddMethods = methods.Select(info => (info, info.GetCustomAttribute(typeof(ReactAddAttribute), false)))
-            .Where(method => method.Item2 != null).Select(method => (method.info, (ReactAddAttribute)method.Item2));
-
-        foreach (var componentAddMethod in componentAddMethods)
-        {
-            var reactOnType = componentAddMethod.Item2.Type;
-            if(!_reactComponentAddMethods.TryGetValue(reactOnType, out var actions))
-                _reactComponentAddMethods.Add(reactOnType, actions = new List<Action<Entity, IComponent>>());
-
-            actions.Add((Entity entity, IComponent component) =>
-                componentAddMethod.info.Invoke(keyValuePair.Value, new[] {(object)entity, (object)component}));
-        }
-    }
-
-    private void TryAddEntityFilter(MethodInfo methodInfo, object @object)
-    {
-        var @params = methodInfo.GetParameters();
-        if (!@params.All(x => x.ParameterType.IsAssignableFrom(typeof(IComponent))))
-            return;
-
-        var targetTypes = @params.Select(x => x.ParameterType);
-    }
-
-    private void InjectFields(KeyValuePair<Type, object> keyValuePair)
-    {
-        var fields = keyValuePair.Value.GetType().GetFields();
-        var injectFields = fields.Where(x => x.IsDefined(typeof(InjectAttribute), false));
-
-        foreach (var field in injectFields)
-        {
-            var fieldType = field.FieldType;
-            if(_instances.TryGetValue(fieldType, out var instance))
-                field.SetValue(keyValuePair.Value, instance);
-        }
-    }
-
-    public void AddComponent<T>(Entity entity, T newComponent) where T : IComponent, new()
-    {
-        if(!_reactComponentAddMethods.TryGetValue(typeof(T), out var actions))
-            return;
-
-        foreach (var action in actions)
-        {
-            action.Invoke(entity, newComponent);
-        }
-    }
-}*/
